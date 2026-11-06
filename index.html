@@ -25,18 +25,18 @@
       try {
         statusDiv.innerText = "Requesting Bluetooth Device...";
         
-        // Scan for any nearby BLE device or filter by name prefix
+        // Scan by exact device name, allowing custom service access
         const device = await navigator.bluetooth.requestDevice({
           filters: [{ name: 'XIAO-TimeSync' }],
-          optionalServices: ['00001805-0000-1000-8000-00805f9b34fb']
+          optionalServices: ['1805']
         });
 
         statusDiv.innerText = "Connecting to GATT Server...";
         const server = await device.gatt.connect();
         
         statusDiv.innerText = "Getting Time Service...";
-        const service = await server.getPrimaryService('00001805-0000-1000-8000-00805f9b34fb');
-        const characteristic = await service.getCharacteristic('00002a2b-0000-1000-8000-00805f9b34fb');
+        const service = await server.getPrimaryService('1805');
+        const characteristic = await service.getCharacteristic('2a2b');
 
         // Get current Epoch time in seconds (4-byte unsigned integer)
         const epochTime = Math.floor(Date.now() / 1000);
