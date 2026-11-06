@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XIAO Clock Sync</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; background: #121212; color: #fff; text-align: center; padding: 40px 20px; }
+    button { background: #007aff; color: white; border: none; padding: 16px 32px; font-size: 18px; border-radius: 12px; font-weight: bold; cursor: pointer; }
+    button:active { background: #0056b3; }
+    #status { margin-top: 20px; color: #aaa; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <h2>XIAO Time Sync</h2>
+  <p>Tap below to pair and push the phone's current time to your LED prop.</p>
+  
+  <button id="syncBtn">Sync Time via Bluetooth</button>
+  <div id="status">Status: Disconnected</div>
+
+  <script>
+    // Standard BLE Current Time Service UUIDs
+    const SERVICE_UUID = 0x1805;
+    const CHARACTERISTIC_UUID = 0x2A2B;
+
+    document.getElementById('syncBtn').addEventListener('click', async () => {
+      const statusDiv = document.getElementById('status');
+      try {
+        statusDiv.innerText = "Scanning for XIAO...";
+        
+        // Request Bluetooth Device
+        const device = await navigator.bluetooth.requestDevice({
+          filters: [{ name: 'XIAO-TimeSync' }],
+          optionalServices: [SERVICE_UUID]
+        });
+
+        statusDiv.innerText = "Connecting to GATT Server...";
+        const server = await device.gatt.connect();
+        
+        statusDiv.innerText = "Getting Time Service...";
+        const service = await server.getPrimaryService(SERVICE_UUID);
+        const characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+
+        // Get current Epoch time in seconds (4-byte unsigned integer)
+        const epochTime = Math.floor(Date.now() / 1000);
+        const buffer = new ArrayBuffer(4);
+        const view = new DataView(buffer);
+        view.setUint32(0, epochTime, true); // Little-endian format
+
+        statusDiv.innerText = "Writing timestamp: " + epochTime;
+        await characteristic.writeValue(buffer);
+
+        statusDiv.innerText = "Sync Complete! Timestamp sent.";
+        setTimeout(() => device.gatt.disconnect(), 1000);
+      } catch (error) {
+        statusDiv.innerText = "Error: " + error.message;
+      }
+    });
+  </script>
+</body>
+</html>
